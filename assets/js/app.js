@@ -94,9 +94,6 @@ function drawCircles(chGrp){
     .on('mouseover', tool_tip.show)
     .on('mouseout', tool_tip.hide);
 
-    /*.text(function (d){
-        return `${d.abbr}`;
-    }).classed("stateText",true);*/
     let stateGroup = chGrp.selectAll("text")
     .data(cData)
     .enter()
@@ -107,11 +104,43 @@ function drawCircles(chGrp){
     .attr("text-anchor", "middle")               
     .text(function (d) { return `${d.abbr}`; })
     .classed("stateText",true);
-
-  
 }
 
-function plotplot(xax, yax) {
+
+function update() {
+    let radius=12;
+	var u = d3.select('svg')
+		.selectAll('circle')
+		.data(cData);
+
+	// Enter
+	u.enter()
+		.append('circle')
+		.attr('r', 0)
+		.attr('cx', d => xScale(d['income']))
+		.attr('cy', d => yScale(d['healthcare']))
+		.style('fill', 'white')
+		.merge(u)
+	  .transition()
+		.duration(1500)
+		.attr("cx", d => xScale(d[xaxd]))
+         .attr("cy", d => yScale(d[yaxd]))
+        .attr("r", radius);
+		//.style('fill', function(d) {return d.fill;});
+
+	// Exit
+	u.exit()
+		.transition()
+		.duration(1500)
+		.attr('r', 0)
+	  .style('opacity', 0)
+		.each('end', function() {
+			d3.select(this).remove();
+		});
+}
+
+
+function plotplot() {
     var svgArea = d3.select("scatter").select("svg");
     if (!svgArea.empty()) {
       svgArea.remove();
@@ -137,8 +166,7 @@ function plotplot(xax, yax) {
     drawLabels(width,height,margin, chartGroup);
 
     drawCircles(chartGroup);
-   
-
+    console.log('just hanging');
 }
 
 
@@ -148,6 +176,6 @@ d3.csv("assets/data/data.csv").then(censusData=>{
     parseNums()
     xaxd='poverty';  // x axis valyes default is poverty
     yaxd='healthcare'; // y axis values default to healthcare
-    plotplot(xaxd,yaxd);
+    plotplot();
 });
 
