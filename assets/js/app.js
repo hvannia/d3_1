@@ -1,7 +1,7 @@
 // @TODO: YOUR CODE HERE!
 let cData=[];
-let xaxd='poverty';  // x axis valyes default is poverty
-let yaxd='healthcare'; // y axis values default to healthcare
+let xaxd="";
+let yaxd="";
 
 function parseNums(){
     cData.forEach(function(d){
@@ -13,6 +13,104 @@ function parseNums(){
         d.age=parseFloat(d.age);
     });
 }
+
+function drawXScale(w,h,chGrp){
+    let xScale = d3.scaleLinear().domain(d3.extent(cData, d => d[xaxd])).range([0, w+20]);
+    let bottomAxis = d3.axisBottom(xScale);
+    chGrp.append("g").attr("transform", `translate(0, ${h})`).call(bottomAxis);
+    return xScale;
+}
+
+function drawYScale(w,h,chGrp){
+    let yScale = d3.scaleLinear().domain(d3.extent(cData, d => d[yaxd])).range([h, 0+20]);
+    let leftAxis = d3.axisLeft(yScale);
+    chGrp.append("g").call(leftAxis);
+    return yScale;
+}
+
+function drawLabels(w, h, m, chGrp){
+
+   let xlabelPoverty=chGrp.append("text")
+   .attr("transform", `translate(${w/2},${h+m.top})`)
+   .classed("active", xaxd=== 'poverty')
+   .classed("inactive", xaxd != 'poverty')
+   .text('In Poverty (%)');
+
+   let xlabelAge=chGrp.append("text")
+   .attr("transform", `translate(${w/2},${h+m.top+20})`)
+   .classed("active", xaxd=== 'age')
+   .classed("inactive", xaxd != 'age')
+   .text('Age (median)');
+
+   let xlabelIncome=chGrp.append("text")
+   .attr("transform", `translate(${w/2},${h+m.top+40})`)
+   .classed("active", xaxd=== 'income')
+   .classed("inactive", xaxd != 'income')
+   .text('Household Income (Median)');
+  
+   let ylabelHealthcare=chGrp.append("text").text('Lacks Healthcare (%)')
+   .attr("transform", function(d){
+        return  ` translate(-40,${h/2}) rotate(-90)`;
+       })
+   .classed("active", yaxd === 'healthcare')
+   .classed("inactive", yaxd != 'healthcare');
+
+   let ylabelSmokes=chGrp.append("text").text('Smokes (%)')
+   .attr("transform", function(d){
+        return  ` translate(-60,${h/2}) rotate(-90)`;
+       })
+   .classed("active", yaxd === 'smokes')
+   .classed("inactive", yaxd != 'smokes');
+
+   let ylabelObesity=chGrp.append("text").text('Obese (%)')
+   .attr("transform", function(d){
+        return  ` translate(-80,${h/2}) rotate(-90)`;
+       })
+   .classed("active", yaxd === 'obesity')
+   .classed("inactive", yaxd != 'obesity');
+}
+
+
+function drawCircles(chGrp){
+    let radius=12;
+    let svg = d3.select("svg");
+
+    let postfix = xaxd==='age'? "" : xaxd ==='income'? "": "%";
+    
+    var tool_tip = d3.tip()
+    .attr("class", "d3-tip")
+    .offset([-8, 0])
+    .html(function(d) { return `${d.state} <br> ${xaxd} : ${d[xaxd]}${postfix} <br> ${yaxd} : ${d[yaxd]}${postfix}` });
+    svg.call(tool_tip);
+
+    let circlesGroup = chGrp.selectAll("circle")
+    .data(cData)
+    .enter()
+    .append("circle")
+    .attr("cx", d => xScale(d[xaxd]))
+    .attr("cy", d => yScale(d[yaxd]))
+    .attr("r", radius)
+    .classed("stateCircle", true)
+    .on('mouseover', tool_tip.show)
+    .on('mouseout', tool_tip.hide);
+
+    /*.text(function (d){
+        return `${d.abbr}`;
+    }).classed("stateText",true);*/
+    let stateGroup = chGrp.selectAll("text")
+    .data(cData)
+    .enter()
+    .append("text")
+    .attr("x", d => xScale(d[xaxd]))
+    .attr("y", d => yScale(d[yaxd]))
+    .attr("font-size", `${radius-2}px`)
+    .attr("text-anchor", "middle")               
+    .text(function (d) { return `${d.abbr}`; })
+    .classed("stateText",true);
+
+  
+}
+
 function plotplot(xax, yax) {
     var svgArea = d3.select("scatter").select("svg");
     if (!svgArea.empty()) {
@@ -20,48 +118,26 @@ function plotplot(xax, yax) {
     } 
     let svgWidth = window.innerWidth;
     let svgHeight = window.innerHeight;
-    const margin = { top: 50, bottom: 50, right: 50, left: 50 };
-    let height = svgHeight - margin.top - margin.bottom;
+    const margin = { top: 50, bottom: 120, right: 75, left: 120 };
+    let height = (svgHeight - margin.top - margin.bottom);
     let width = svgWidth - margin.left - margin.right;
   
     let svg = d3.select("#scatter")
       .append("svg")
-      .attr("height", svgHeight*.75)
-      .attr("width", svgWidth*.75);
+      .attr("height", svgHeight)
+      .attr("width", svgWidth);
   
     let chartGroup = svg.append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    parseNums()
 
-    //console.table(cData);
+    xScale= drawXScale(width, height, chartGroup);
+    yScale= drawYScale(width, height, chartGroup);
 
-    let xScale = d3.scaleLinear()
-    .domain(d3.extent(cData, d => d[xax]))
-    .range([0, width]);
-    
-    let yScale = d3.scaleLinear()
-    .domain(d3.extent(cData, d => d[yax]))
-    .range([height, 0]);
+    drawLabels(width,height,margin, chartGroup);
 
-
-    let leftAxis = d3.axisLeft(yScale);
-
-    let bottomAxis = d3.axisBottom(xScale);
-
-    yadj=d3.select('svg').attr("height")-margin.bottom;
-    
-    chartGroup.append("g")
-    .attr("transform", `translate(0, ${yadj})`)
-    .call(bottomAxis);
-
-
-    chartGroup.append("g")
-    .call(leftAxis);
+    drawCircles(chartGroup);
    
-
-
-
 
 }
 
@@ -69,6 +145,9 @@ function plotplot(xax, yax) {
 
 d3.csv("assets/data/data.csv").then(censusData=>{
     cData=censusData;
+    parseNums()
+    xaxd='poverty';  // x axis valyes default is poverty
+    yaxd='healthcare'; // y axis values default to healthcare
     plotplot(xaxd,yaxd);
 });
 

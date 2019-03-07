@@ -1,0 +1,11 @@
+
+    todo:
+
+ 
+
+ onlcick axis change data
+ 
+make transitions om cirlces
+make transitions on axis
+    
+make text size variable
