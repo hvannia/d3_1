@@ -3,7 +3,7 @@ var cgGlobal =[] ; // for debug
 
 let cData=[];   //data
 let xaxd='poverty';    // x axis value, defaults to 
-let yaxd='healthcare';    // y axis value, defaults to 
+let yaxd='obesity';    // y axis value, defaults to 
 const margin = { top: 50, bottom: 100, right: 100, left: 120 };
 const povertyText='In Poverty (%)';
 const ageText='Age (Median)';
@@ -13,6 +13,8 @@ const smokeText="Smokes (%)";
 const obesityText="Obesity (%)";
 let svgHeight=0;
 let svgWidth=0;
+//let xpostfix="";
+//let ypostfix="";
 
 /* Prase relevant strings as numbers */
 function makeNums(){
@@ -42,6 +44,10 @@ function initPlot(){
       .attr("width", svgWidth);
 }
 
+function customExtent(arr,func){
+    return [d3.min(arr,func)*.9, d3.max(arr,func)*1.1];
+}
+
 function drawPlot(){
     console.log('start drawPlot')
     let h = (svgHeight - margin.top - margin.bottom);
@@ -50,29 +56,25 @@ function drawPlot(){
     let radius= w >900 ?14: w> 700? 12: w> 500? 11: w > 300? 9:8;
     let svg = d3.select("svg");
 
-    let postfix = xaxd==='age'? "" : xaxd ==='income'? "": "%";
-    //make group
-    
-    //if (!redraw){ //initial plot
-    console.log('redraw is false, so new dtraw')
      let chartGroup = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     //draw x scale
-    let xScale = d3.scaleLinear().domain(d3.extent(cData, d => d[xaxd])).range([0, w]);
+    //let xScale = d3.scaleLinear().domain(d3.extent(cData, d => d[xaxd])).range([0, w]);
+    let xScale = d3.scaleLinear().domain(customExtent(cData, d => d[xaxd])).range([0, w]);
     let bottomAxis = d3.axisBottom(xScale);
     chartGroup.append("g").attr("transform", `translate(0, ${h})`).attr('id','xaxis').call(bottomAxis);
     
 
     //draw y scale
-    let yScale = d3.scaleLinear().domain(d3.extent(cData, d => d[yaxd])).range([h, 0]);
+    let yScale = d3.scaleLinear().domain(customExtent(cData, d => d[yaxd])).range([h, 0]);
     let leftAxis = d3.axisLeft(yScale);
     chartGroup.append("g").attr('id','yaxis').call(leftAxis);
 
      //tool top
     let tool_tip = d3.tip()
         .attr("class", "d3-tip")
-        .offset([-8, 0])
-        .html(function(d) { return `${d.state} <br> ${xaxd} : ${d[xaxd]}${postfix} <br> ${yaxd} : ${d[yaxd]}${postfix}` });
+        .offset([-6, 0])
+        .html(function(d) { return `${d.state} <br> ${xaxd} : ${d[xaxd]}${xaxd=='poverty'?"%":""  } <br> ${yaxd} : ${d[yaxd]}%` });
         svg.call(tool_tip);
 
         //draw circles
@@ -80,7 +82,7 @@ function drawPlot(){
     circlesGroup.data(cData).enter()
         .append("circle")
         .attr("cx", d => xScale(d[xaxd]))
-        .attr("cy", d => yScale(d[yaxd])-8)
+        .attr("cy", d => yScale(d[yaxd]))
         .attr("r", radius)
         .classed("stateCircle", true)
         .on('mouseover', tool_tip.show)
@@ -90,7 +92,7 @@ function drawPlot(){
     circlesGroup.data(cData).enter()
         .append("text")
         .attr("x", d => xScale(d[xaxd]))
-        .attr("y", d => yScale(d[yaxd])-4)
+        .attr("y", d => yScale(d[yaxd])+4   )
         .attr("font-size", `${radius-1}px`)
         .attr("text-anchor", "middle")               
         .text(function (d) { return `${d.abbr}`; })
@@ -159,10 +161,6 @@ function drawPlot(){
                 moveCt(xaxd,'obesity',w,h);
                 adjustScale('y',w+margin.left,h, chartGroup);
             });
-        //draw tooltip
-
-       
-   // }else
     console.log('end draw plot');
 }//end redraw
 
@@ -171,20 +169,20 @@ function moveCt(xd,yd,w,h){ // do transitions on circles and text
     console.log('start moveCt');
     xaxd=xd; 
     yaxd=yd;
-    xScale = d3.scaleLinear().domain(d3.extent(cData, d => d[xaxd])).range([0, w+20]);
-    yScale = d3.scaleLinear().domain(d3.extent(cData, d => d[yaxd])).range([h, 0+20]);
+    xScale = d3.scaleLinear().domain(customExtent(cData, d => d[xaxd])).range([0, w+20]);
+    yScale = d3.scaleLinear().domain(customExtent(cData, d => d[yaxd])).range([h, 0+20]);
     console.log(`axises are now ${xaxd} and ${yaxd}!`);
     d3.selectAll('circle')
         .transition()
         .duration(1000)
-        .attr("cx",d => xScale(d[xaxd])+50)
-        .attr("cy",d => yScale(d[yaxd])+4-50);
+        .attr("cx",d => xScale(d[xaxd]))
+        .attr("cy",d => yScale(d[yaxd]));
 
     d3.selectAll(".stateText")
         .transition()
         .duration(1000)
-        .attr("x",d => xScale(d[xaxd])+50)
-        .attr("y",d => yScale(d[yaxd])+8-50);
+        .attr("x",d => xScale(d[xaxd]))
+        .attr("y",d => yScale(d[yaxd])+4);
     
     
     //clear active laabel
@@ -220,7 +218,7 @@ function moveCt(xd,yd,w,h){ // do transitions on circles and text
 }
 
 function adjustScale(axis,w,h, ch){
-
+    postfix = xaxd ==='age'? "" : xaxd  ==='income'? "": "%";
     if (axis==='x'){
         //remove old
         d3.select('#xaxis').remove();
@@ -228,19 +226,12 @@ function adjustScale(axis,w,h, ch){
         xScale = d3.scaleLinear().domain(d3.extent(cData, d => d[xaxd])).range([0, w+20]);
         bottomAxis = d3.axisBottom(xScale);
         ch.append("g").attr("transform", `translate(0, ${h})`).attr('id','xaxis').call(bottomAxis);
-        /*
-        .transition()
-        .duration(1000)
-        .text(function (d) { return `${d.abbr}`; })
-        */
     }else{ //y
         d3.select('#yaxis').remove();
         yScale = d3.scaleLinear().domain(d3.extent(cData, d => d[yaxd])).range([h, 0+20]);
         leftAxis = d3.axisLeft(yScale);
         ch.append("g").attr('id','yaxis').call(leftAxis);
-    
     }
-
 }
 
 function completereDraw(){
@@ -252,7 +243,6 @@ d3.csv("assets/data/data.csv").then(censusData=>{
     cData=censusData;
     makeNums();
     completereDraw();
-    //plotplot(false);
 });
 
 d3.select(window).on("resize", completereDraw);
