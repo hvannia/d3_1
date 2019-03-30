@@ -1,2 +1,2 @@
-# d3_1
+# Interactive Census Data Plot
 Interactive plot using d3.js.
